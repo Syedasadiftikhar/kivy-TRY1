@@ -12,32 +12,40 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Get Date
+      - name: Set Date Output
         id: get-date
-        run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-        shell: bash
+        run: echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-8-jdk python3-pip python3-setuptools python3-wheel build-essential
+          pip install --upgrade pip
+          pip install buildozer cython
 
       - name: Cache Buildozer global directory
         uses: actions/cache@v2
         with:
-          path: .buildozer_global
+          path: ~/.buildozer
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      - name: Cache .buildozer directory
+      - name: Cache .buildozer project folder
         uses: actions/cache@v2
         with:
           path: .buildozer
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
 
       - name: Build with Buildozer
-        id: buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+        run: buildozer -v android debug
+        timeout-minutes: 25
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v2
         with:
-          name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+          name: kivy-apk
+          path: bin/*.apk
