@@ -1,50 +1,54 @@
-name: CI
+name: Build Kivy APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]  # or change to your working branch
 
 jobs:
   build:
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Checkout Code
+      - name: ⬇️ Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Set Date Output
+      - name: 🕒 Set Build Date
         id: get-date
         run: echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.9'
 
-      - name: Install dependencies
+      - name: 🛠️ Install Build Dependencies
         run: |
+          echo "Updating system and installing packages..."
           sudo apt update
           sudo apt install -y git zip unzip openjdk-8-jdk python3-pip python3-setuptools python3-wheel build-essential
+          echo "Installing Python packages..."
           pip install --upgrade pip
           pip install buildozer cython
 
-      - name: Cache Buildozer global directory
+      - name: 💾 Cache Buildozer Global Directory
         uses: actions/cache@v2
         with:
           path: ~/.buildozer
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      - name: Cache .buildozer project folder
+      - name: 💾 Cache .buildozer Project Directory
         uses: actions/cache@v2
         with:
           path: .buildozer
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
 
-      - name: Build with Buildozer
-        run: buildozer -v android debug
-        timeout-minutes: 25
+      - name: 🔨 Build APK with Buildozer
+        run: |
+          echo "Starting Buildozer build..."
+          buildozer -v android debug
+        timeout-minutes: 30  # Cancel build if it takes too long
 
-      - name: Upload APK
+      - name: 📦 Upload APK as Artifact
         uses: actions/upload-artifact@v2
         with:
           name: kivy-apk
